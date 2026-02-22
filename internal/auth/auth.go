@@ -8,6 +8,7 @@ import (
 	"golang.org/x/oauth2/microsoft"
 )
 
+// Client to handle Microsoft Azure AD authentication
 type Client struct {
 	Config      config.Config
 	OAuthConfig oauth2.Config
