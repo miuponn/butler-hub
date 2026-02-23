@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/miuponn/butler-hub/internal/auth"
+	"github.com/miuponn/butler-hub/internal/domain"
 	"github.com/miuponn/butler-hub/internal/graph"
 	"golang.org/x/oauth2"
 )
@@ -52,14 +53,24 @@ func (s *Server) HandleGetMessages(w http.ResponseWriter, r *http.Request) {
 	}
 	graphClient := graph.NewClient(s.Token)
 	// fetch messages using graphClient
-	messages, _, err := graphClient.GetMessages(graph.QueryOptions{})
+	messageQuery := graph.QueryOptions{
+		Top: 30,
+		Select: "internetMessageHeaders,id,internetMessageId,subject,createdDateTime,lastModifiedDateTime,receivedDateTime,sentDateTime,hasAttachments,importance," +
+			"from,sender,toRecipients,replyTo,categories,isRead,isDraft,parentFolderId,conversationId,conversationIndex,inferenceClassification,isReadReceiptRequested,flag,webLink,bodyPreview,body",
+	}
+	messages, _, err := graphClient.GetMessages(messageQuery)
 	if err != nil {
 		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
 		return
 	}
+	// normalize messages and build slice of Email objs
+	var emails []domain.Email
+	for _, msg := range messages {
+		emails = append(emails, graph.NormalizeMessage(msg))
+	}
 	// return messages as JSON response
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(messages)
+	err = json.NewEncoder(w).Encode(emails)
 	if err != nil {
 		http.Error(w, "Failed to encode messages", http.StatusInternalServerError)
 		return

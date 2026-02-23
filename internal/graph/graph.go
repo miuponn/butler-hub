@@ -34,33 +34,39 @@ type Flag struct {
 	FlagStatus string `json:"flagStatus"`
 }
 
+type MessageHeader struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type Message struct {
-	ID                      string      `json:"id"`
-	InternetMessageID       string      `json:"internetMessageId"`
-	ChangeKey               string      `json:"changeKey"`
-	Subject                 string      `json:"subject"`
-	CreatedDateTime         string      `json:"createdDateTime"`
-	LastModifiedDateTime    string      `json:"lastModifiedDateTime"`
-	ReceivedDateTime        string      `json:"receivedDateTime"`
-	SentDateTime            string      `json:"sentDateTime"`
-	HasAttachments          bool        `json:"hasAttachments"`
-	Importance              string      `json:"importance"`
-	From                    Recipient   `json:"from"`
-	Sender                  Recipient   `json:"sender"`
-	ToRecipients            []Recipient `json:"toRecipients"`
-	ReplyTo                 []Recipient `json:"replyTo"`
-	Categories              []string    `json:"categories"`
-	IsRead                  bool        `json:"isRead"`
-	IsDraft                 bool        `json:"isDraft"`
-	ParentFolderID          string      `json:"parentFolderId"`
-	ConversationID          string      `json:"conversationId"`
-	ConversationIndex       string      `json:"conversationIndex"`
-	InferenceClassification string      `json:"inferenceClassification"`
-	IsReadReceiptRequested  bool        `json:"isReadReceiptRequested"`
-	Flag                    Flag        `json:"flag"`
-	WebLink                 string      `json:"webLink"`
-	BodyPreview             string      `json:"bodyPreview"`
-	Body                    Body        `json:"body"`
+	InternetMessageHeaders  []MessageHeader `json:"internetMessageHeaders"`
+	ID                      string         `json:"id"`
+	InternetMessageID       string         `json:"internetMessageId"`
+	ChangeKey               string         `json:"changeKey"`
+	Subject                 string         `json:"subject"`
+	CreatedDateTime         string         `json:"createdDateTime"`
+	LastModifiedDateTime    string         `json:"lastModifiedDateTime"`
+	ReceivedDateTime        string         `json:"receivedDateTime"`
+	SentDateTime            string         `json:"sentDateTime"`
+	HasAttachments          bool           `json:"hasAttachments"`
+	Importance              string         `json:"importance"`
+	From                    Recipient      `json:"from"`
+	Sender                  Recipient      `json:"sender"`
+	ToRecipients            []Recipient    `json:"toRecipients"`
+	ReplyTo                 []Recipient    `json:"replyTo"`
+	Categories              []string       `json:"categories"`
+	IsRead                  bool           `json:"isRead"`
+	IsDraft                 bool           `json:"isDraft"`
+	ParentFolderID          string         `json:"parentFolderId"`
+	ConversationID          string         `json:"conversationId"`
+	ConversationIndex       string         `json:"conversationIndex"`
+	InferenceClassification string         `json:"inferenceClassification"`
+	IsReadReceiptRequested  bool           `json:"isReadReceiptRequested"`
+	Flag                    Flag           `json:"flag"`
+	WebLink                 string         `json:"webLink"`
+	BodyPreview             string         `json:"bodyPreview"`
+	Body                    Body           `json:"body"`
 }
 
 type messagesResponse struct {
