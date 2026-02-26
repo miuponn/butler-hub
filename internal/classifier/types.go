@@ -1,5 +1,14 @@
 package classifier
 
+import (
+	"github.com/miuponn/butler-hub/internal/domain"
+)
+
+type Classifier struct {
+	SuspicionGroups []SignalGroup
+	SuspicionPolicy SuspicionPolicy
+}
+
 // Note: centralized features result after feature extraction pass
 // Note: extracted signals used for scoring after featureextraction()
 // what features engins are allowed to use, pre-normalized, pre-canonicalized, deterministic
@@ -11,9 +20,11 @@ package classifier
 // Analyze: false positives, ambiguous cases. etc. tune weights
 
 // Step 1: Feature extraction result
+
 type Features struct {
 	// structural
-	LinkCount         int
+	LinkCount int
+	// could break this down into link count, etc
 	UniqueLinkDomains []string // keep as slice for intent/category engines, or refine to signals?
 	ImageCount        int
 	HasTrackingParams bool
@@ -22,22 +33,41 @@ type Features struct {
 	// header signals
 	HasListUnsubscribeHeader bool
 	PrecedenceBulk           bool
-	ReplyToMismatch          bool
+	ReplyToMismatch          bool // overlap with SPF/DKIM/DMARC?
+	DisplayNameSpoofing      bool // overlap with SPF/DKIM/DMARC?
 
 	// domain signals
-	// FromDomain            string --- possible leakage ---
-	// SenderDomain          string --- possible leakage ---
-	DomainReputationScore float64
+	SenderDomainMismatch     bool    // (sender ≠ from). overlap with SPF/DKIM/DMARC?
+	DomainReputationScore    float64 // overlap with SPF/DKIM/DMARC?
+	ReturnPathDomainMismatch bool    // overlap with SPF/DKIM/DMARC?
+	DisposableDomainList     bool    // overlap with SPF/DKIM/DMARC?
+	NewlyRegisteredDomain    bool    // if good external tool exists
+	SuspiciousTLD            bool    // possible overlap
+	DomainSpoofing           bool    // overlap with SPF/DKIM/DMARC?
 
 	// content signals
-	ContainsPromoKeywords         bool
-	ContainsTransactionalKeywords bool
-	ContainsUrgentKeywords        bool
-	WordCount                     int
+	ContainsPromoKeywords            bool
+	FinancialRequestPatternsDetected bool
+	ThreatLanguagePatternsDetected   bool
+	ContainsTransactionalKeywords    bool
+	ContainsUrgentKeywords           bool
+	WordCount                        int
+
+	// entropy and obfuscation signnals
+	HighLocalPartEntropy bool
+	HighSubjectEntropy   bool
+	HighSymbolDensity    bool
+	MixedUnicodeScripts  bool
+	URLShortenerUsed     bool
 
 	// behavioural
 	IsReply   bool
 	IsForward bool
+
+	// auth signals
+	SPFResult   domain.SPFResult
+	DKIMResult  domain.DKIMResult
+	DMARCResult domain.DMARCResult
 }
 
 type SignalGroup struct {
@@ -50,8 +80,6 @@ type SignalGroup struct {
 // NOTE: if flagged (policy decision), return result immediately from pipeline
 // focus precision over recall- false positives costly
 
-// TODO: Must design signal grouping to prevent correlated inflation
-// TODO: Design clean weight configuration system
 type Signal struct {
 	// consider adding computed field for contribution weight x value ?
 	Name   string
@@ -68,7 +96,7 @@ const MaxSuspicionScore float64 = 10.0
 type SuspicionResult struct {
 	Flagged bool
 	Score   float64
-	Signals map[string]float64
+	Signals []Signal
 }
 
 // policy decoupled from result, allows flexible threshold configuration
