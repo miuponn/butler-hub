@@ -38,14 +38,14 @@ type Features struct {
 
 	// domain signals
 	SenderDomainMismatch     bool    // (sender ≠ from). overlap with SPF/DKIM/DMARC?
-	DomainReputationScore    float64 // overlap with SPF/DKIM/DMARC?
 	ReturnPathDomainMismatch bool    // overlap with SPF/DKIM/DMARC?
 	DisposableDomainList     bool    // overlap with SPF/DKIM/DMARC?
 	NewlyRegisteredDomain    bool    // if good external tool exists
-	SuspiciousTLD            bool    // possible overlap
+	SuspiciousTLDScore       float64 // possible overlap
 	DomainSpoofing           bool    // overlap with SPF/DKIM/DMARC?
 
 	// content signals
+	DomainReputationScore            float64 // overlap with SPF/DKIM/DMARC?
 	ContainsPromoKeywords            bool
 	FinancialRequestPatternsDetected bool
 	ThreatLanguagePatternsDetected   bool

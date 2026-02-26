@@ -29,6 +29,12 @@ func ExtractLocalPart(address string) string {
 	return parts[0]
 }
 
+// extract TLD from registered domain
+func ExtractTLD(domain string) string {
+	suffix, _ := publicsuffix.PublicSuffix(domain)
+	return suffix
+}
+
 // extract registered domain from URL
 func ExtractURLDomain(rawURL string) string {
 	parsedURL, err := url.Parse(rawURL)

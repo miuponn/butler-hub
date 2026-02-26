@@ -1,0 +1,41 @@
+
+
+# free ccTLDs - historically weaponized at scale
+tk 0.9
+ml 0.9
+ga 0.9
+cf 0.9
+gq 0.9
+cx 0.9
+pw 0.9
+
+# new gTLDs with no legit ecosystem, higher abuse ratio
+zip 0.75
+mov 0.75
+rest 0.75
+fin 0.75
+
+# high-volume spam gTLDs, some legitiamt but low signal-to-noise
+top 0.6
+click 0.6
+link 0.6
+live 0.6
+online 0.6
+site 0.6
+fun 0.6
+space 0.6
+world 0.6
+
+# medium risk - legitimate use exists but common in bulk mail
+info 0.4
+xyz 0.4
+club 0.4
+shop 0.4
+store 0.4
+digital 0.4
+email 0.4
+
+# low-risk flag - mostly legitimate but worth a soft signal
+biz 0.3
+us 0.3
+mobi 0.3

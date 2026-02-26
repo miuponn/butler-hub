@@ -2,6 +2,7 @@ package classifier
 
 import (
 	_ "embed"
+	"strconv"
 	"strings"
 
 	"github.com/miuponn/butler-hub/internal/domain"
@@ -9,9 +10,16 @@ import (
 )
 
 //go:embed data/shorteners.txt
-
 var shortenerRaw string
 var knownShorteners map[string]bool
+
+//go:embed data/tlds.txt
+var tldsRaw string
+var knownTLDScores map[string]float64
+
+//go:embed data/tlds_known_spam.txt
+var tldSpamRaw string
+var knownSpamTLDs map[string]bool
 
 func init() {
 	knownShorteners = map[string]bool{}
@@ -20,6 +28,29 @@ func init() {
 		line = strings.TrimSpace(line)
 		if line != "" && line[0] != '#' {
 			knownShorteners[line] = true
+		}
+	}
+	knownTLDScores = map[string]float64{}
+	lines = strings.Split(tldsRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			parts := strings.Fields(line)
+			if len(parts) == 2 {
+				score, err := strconv.ParseFloat(parts[1], 64)
+				if err == nil {
+					tld := parts[0]
+					knownTLDScores[tld] = score
+				}
+			}
+		}
+	}
+	knownSpamTLDs = map[string]bool{}
+	lines = strings.Split(tldSpamRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			knownSpamTLDs[line] = true
 		}
 	}
 }
@@ -55,7 +86,12 @@ func ExtractFeatures(email domain.Email) Features {
 	features.ReturnPathDomainMismatch = email.FromDomain != returnPathDomain && email.FromDomain != "" && returnPathDomain != ""
 	// TODO: DisposableDomainList
 	// TODO: NewlyRegisteredDomain
-	// TODO: SuspiciousTLD
+	tld := utils.ExtractTLD(email.FromDomain)
+	if score, ok := knownTLDScores[tld]; ok {
+		features.SuspiciousTLDScore = score
+	} else if knownSpamTLDs[tld] {
+		features.SuspiciousTLDScore = 0.6
+	}
 	// TODO: DomainSpoofing
 
 	// content signals
