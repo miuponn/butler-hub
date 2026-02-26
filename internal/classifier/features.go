@@ -1,11 +1,28 @@
 package classifier
 
 import (
+	_ "embed"
 	"strings"
 
 	"github.com/miuponn/butler-hub/internal/domain"
 	"github.com/miuponn/butler-hub/pkg/utils"
 )
+
+//go:embed data/shorteners.txt
+
+var shortenerRaw string
+var knownShorteners map[string]bool
+
+func init() {
+	knownShorteners = map[string]bool{}
+	lines := strings.Split(shortenerRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			knownShorteners[line] = true
+		}
+	}
+}
 
 func ExtractFeatures(email domain.Email) Features {
 	features := Features{}
@@ -34,7 +51,7 @@ func ExtractFeatures(email domain.Email) Features {
 	// domain signals
 	features.SenderDomainMismatch = email.FromDomain != email.SenderDomain && email.SenderDomain != ""
 	// TODO: DomainReputationScore
-	returnPathDomain := utils.ExtractDomain(email.Headers.ReturnPath)
+	returnPathDomain := utils.ExtractEmailDomain(email.Headers.ReturnPath)
 	features.ReturnPathDomainMismatch = email.FromDomain != returnPathDomain && email.FromDomain != "" && returnPathDomain != ""
 	// TODO: DisposableDomainList
 	// TODO: NewlyRegisteredDomain
@@ -54,7 +71,13 @@ func ExtractFeatures(email domain.Email) Features {
 	// TODO: HighSubjectEntropy
 	// TODO: HighSymbolDensity
 	// TODO: MixedUnicodeScripts
-	// TODO: URLShortenerUsed
+	for _, link := range email.RawLinks {
+		URLDomain := utils.ExtractURLDomain(link)
+		if knownShorteners[URLDomain] {
+			features.URLShortenerUsed = true
+			break
+		}
+	}
 
 	// behavioural
 	features.IsReply = strings.HasPrefix(email.Subject, "Re:") || strings.HasPrefix(email.Subject, "RE:")

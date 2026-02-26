@@ -8,7 +8,7 @@ import (
 )
 
 // extract registered domain from email address
-func ExtractDomain(address string) string {
+func ExtractEmailDomain(address string) string {
 	parts := strings.Split(address, "@")
 	if len(parts) != 2 {
 		return ""

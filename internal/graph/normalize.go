@@ -67,17 +67,17 @@ func NormalizeMessage(msg Message) domain.Email {
 	email.SentAt = parseTime(msg.SentDateTime)
 
 	email.FromAddress = strings.ToLower(msg.From.Address)
-	email.FromDomain = utils.ExtractDomain(msg.From.Address)
+	email.FromDomain = utils.ExtractEmailDomain(msg.From.Address)
 	email.FromDisplayName = strings.TrimSpace(msg.From.Name)
 
 	email.SenderAddress = strings.ToLower(msg.Sender.Address)
-	email.SenderDomain = utils.ExtractDomain(msg.Sender.Address)
+	email.SenderDomain = utils.ExtractEmailDomain(msg.Sender.Address)
 
 	for _, recipient := range msg.ToRecipients {
 		email.ToAddresses = append(email.ToAddresses, strings.ToLower(recipient.Address))
 	}
 	if len(msg.ReplyTo) > 0 {
-		email.ReplyToDomain = utils.ExtractDomain(msg.ReplyTo[0].Address)
+		email.ReplyToDomain = utils.ExtractEmailDomain(msg.ReplyTo[0].Address)
 	}
 
 	email.HasAttachments = msg.HasAttachments
