@@ -1,0 +1,44 @@
+
+# time-sensitive language
+immediately
+expires
+last chance
+valid today only
+emergency
+alert
+winner
+congratulations
+you've been selected
+you qualify
+urgent
+
+# action demand
+act now
+claim now
+hurry
+response required
+warning
+deadline
+expiring
+final notice
+
+# account demand 
+urgent action required
+verify your identity
+authentication required
+action required
+update payment method
+recover account
+
+# account threat 
+immediate action required
+account suspended
+account terminated
+breach detected
+
+# scarcity 
+limited supply
+limited time
+exclusive reward
+exclusive access
+

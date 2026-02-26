@@ -159,8 +159,8 @@ const (
 
 type CategoryType string
 
-// promotional, newsletter/digest, intstitutional, community/event,
-// financial, account/security, shipping/logistics
+// broadcast: promotional, newsletter/digest, intstitutional, community/event,
+// transactional: financial, account/security, shipping/logistics
 // cross-intent categories: work/professional, education, social/platform notifications
 // probably will refine later and test/focus on building first suspicious engine
 

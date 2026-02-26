@@ -2,6 +2,7 @@ package classifier
 
 import (
 	_ "embed"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,26 @@ var knownTLDScores map[string]float64
 //go:embed data/tlds_known_spam.txt
 var tldSpamRaw string
 var knownSpamTLDs map[string]bool
+
+//go:embed data/urgent_keywords.txt
+var urgentKeywordsRaw string
+var urgentKeywordsRe *regexp.Regexp
+
+//go:embed data/promotional_keywords.txt
+var promotionalKeywordsRaw string
+var promotionalKeywordsRe *regexp.Regexp
+
+//go:embed data/transactional_keywords.txt
+var transactionalKeywordsRaw string
+var transactionalKeywordsRe *regexp.Regexp
+
+//go:embed data/financial_request_patterns.txt
+var financialRequestPatternsRaw string
+var financialRequestPatternsRe *regexp.Regexp
+
+//go:embed data/threat_language_patterns.txt
+var threatLanguagePatternsRaw string
+var threatLanguagePatternsRe *regexp.Regexp
 
 func init() {
 	knownShorteners = map[string]bool{}
@@ -53,8 +74,64 @@ func init() {
 			knownSpamTLDs[line] = true
 		}
 	}
+	urgentKeywords := []string{}
+	lines = strings.Split(urgentKeywordsRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			urgentKeywords = append(urgentKeywords, regexp.QuoteMeta(line))
+		}
+	}
+	if len(urgentKeywords) > 0 {
+		urgentKeywordsRe = regexp.MustCompile(`(?i)\b(` + strings.Join(urgentKeywords, "|") + `)\b`)
+	}
+	promotionalKeywords := []string{}
+	lines = strings.Split(promotionalKeywordsRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			promotionalKeywords = append(promotionalKeywords, regexp.QuoteMeta(line))
+		}
+	}
+	if len(promotionalKeywords) > 0 {
+		promotionalKeywordsRe = regexp.MustCompile(`(?i)\b(` + strings.Join(promotionalKeywords, "|") + `)\b`)
+	}
+	transactionalKeywords := []string{}
+	lines = strings.Split(transactionalKeywordsRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			transactionalKeywords = append(transactionalKeywords, regexp.QuoteMeta(line))
+		}
+	}
+	if len(transactionalKeywords) > 0 {
+		transactionalKeywordsRe = regexp.MustCompile(`(?i)\b(` + strings.Join(transactionalKeywords, "|") + `)\b`)
+	}
+	financialRequestPatterns := []string{}
+	lines = strings.Split(financialRequestPatternsRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			financialRequestPatterns = append(financialRequestPatterns, line)
+		}
+	}
+	if len(financialRequestPatterns) > 0 {
+		financialRequestPatternsRe = regexp.MustCompile(`(?i)(` + strings.Join(financialRequestPatterns, "|") + `)`)
+	}
+	threatLanguagePatterns := []string{}
+	lines = strings.Split(threatLanguagePatternsRaw, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && line[0] != '#' {
+			threatLanguagePatterns = append(threatLanguagePatterns, line)
+		}
+	}
+	if len(threatLanguagePatterns) > 0 {
+		threatLanguagePatternsRe = regexp.MustCompile(`(?i)(` + strings.Join(threatLanguagePatterns, "|") + `)`)
+	}
 }
 
+// main feature extraction method, takes normalized email and produces feature vector for classification
 func ExtractFeatures(email domain.Email) Features {
 	features := Features{}
 
@@ -95,11 +172,25 @@ func ExtractFeatures(email domain.Email) Features {
 	// TODO: DomainSpoofing
 
 	// content signals
-	// TODO: ContainsPromoKeywords
-	// TODO: ContainsTransactionalKeywords
-	// TODO: ContainsUrgentKeywords
-	// TODO: FinancialRequestPatternsDetected
-	// TODO: ThreatLanguagePatternsDetected
+	if urgentKeywordsRe != nil {
+		features.UrgentKeywordsSubjectCount = len(urgentKeywordsRe.FindAllString(email.Subject, -1))
+		features.UrgentKeywordsBodyCount = len(urgentKeywordsRe.FindAllString(email.BodyClean, -1))
+	}
+	if threatLanguagePatternsRe != nil {
+		features.ThreatLanguagePatternsSubjectCount = len(threatLanguagePatternsRe.FindAllString(email.Subject, -1))
+		features.ThreatLanguagePatternsBodyCount = len(threatLanguagePatternsRe.FindAllString(email.BodyClean, -1))
+	}
+	if financialRequestPatternsRe != nil {
+		features.FinancialRequestPatternsSubjectCount = len(financialRequestPatternsRe.FindAllString(email.Subject, -1))
+		features.FinancialRequestPatternsBodyCount = len(financialRequestPatternsRe.FindAllString(email.BodyClean, -1))
+	}
+	if promotionalKeywordsRe != nil {
+		features.PromotionalKeywordsCount = len(promotionalKeywordsRe.FindAllString(email.BodyClean, -1))
+	}
+	if transactionalKeywordsRe != nil {
+		features.TransactionalKeywordsCount = len(transactionalKeywordsRe.FindAllString(email.BodyClean, -1))
+	}
+
 	features.WordCount = len(strings.Fields((email.BodyClean)))
 
 	// entropy and obfuscation signals
