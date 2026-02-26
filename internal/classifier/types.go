@@ -45,13 +45,16 @@ type Features struct {
 	DomainSpoofing           bool    // overlap with SPF/DKIM/DMARC?
 
 	// content signals
-	DomainReputationScore            float64 // overlap with SPF/DKIM/DMARC?
-	ContainsPromoKeywords            bool
-	FinancialRequestPatternsDetected bool
-	ThreatLanguagePatternsDetected   bool
-	ContainsTransactionalKeywords    bool
-	ContainsUrgentKeywords           bool
-	WordCount                        int
+	UrgentKeywordsSubjectCount           int
+	UrgentKeywordsBodyCount              int
+	ThreatLanguagePatternsSubjectCount   int
+	ThreatLanguagePatternsBodyCount      int
+	FinancialRequestPatternsSubjectCount int
+	FinancialRequestPatternsBodyCount    int
+	PromotionalKeywordsCount             int
+	TransactionalKeywordsCount           int
+	WordCount                            int
+	DomainReputationScore                float64 // overlap with SPF/DKIM/DMARC?
 
 	// entropy and obfuscation signnals
 	HighLocalPartEntropy bool
