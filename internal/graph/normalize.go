@@ -1,12 +1,12 @@
 package graph
 
 import (
+	"mime"
 	"strings"
 	"time"
 
 	"github.com/miuponn/butler-hub/internal/domain"
-	"golang.org/x/net/publicsuffix"
-	// "golang.org/x/net/html"
+	"github.com/miuponn/butler-hub/pkg/utils"
 )
 
 // extract headers for normalization from raw graph api headers
@@ -15,21 +15,23 @@ func parseHeaders(raw []MessageHeader) domain.EmailHeaders {
 	for _, h := range raw {
 		switch h.Name {
 		case "List-Unsubscribe":
-			headers.ListUnsubscribe = h.Value
+			headers.ListUnsubscribeMailto, headers.ListUnsubscribeURL = parseListUnsubscribe(h.Value)
 		case "List-ID":
-			headers.ListID = h.Value
+			headers.ListID = strings.TrimSpace((strings.Trim(h.Value, "<>")))
 		case "X-Mailer":
-			headers.XMailer = h.Value
+			headers.XMailer = strings.TrimSpace(h.Value)
 		case "Precedence":
-			headers.Precedence = domain.Precedence(h.Value)
+			headers.Precedence = domain.Precedence(strings.TrimSpace(h.Value))
 		case "Return-Path":
-			headers.ReturnPath = h.Value
+			headers.ReturnPath = strings.TrimSpace((strings.Trim(h.Value, "<>")))
 		case "Authentication-Results":
 			parseAuthResults(h.Value, &headers)
 		case "Received":
-			headers.ReceivedChain = append(headers.ReceivedChain, h.Value)
+			headers.ReceivedChain = append(headers.ReceivedChain, strings.TrimSpace(h.Value))
 		case "Content-Type":
-			headers.ContentType = h.Value
+			headers.ContentType = strings.TrimSpace(h.Value)
+		case "X-SID-PRA":
+			headers.XSIDPRA = strings.ToLower(strings.TrimSpace(h.Value))
 		}
 	}
 	return headers
@@ -64,33 +66,50 @@ func NormalizeMessage(msg Message) domain.Email {
 	email.ReceivedAt = parseTime(msg.ReceivedDateTime)
 	email.SentAt = parseTime(msg.SentDateTime)
 
-	email.FromAddress = msg.From.Address
-	email.FromDomain = extractDomain(msg.From.Address)
-	email.FromDisplayName = msg.From.Name
+	email.FromAddress = strings.ToLower(msg.From.Address)
+	email.FromDomain = utils.ExtractDomain(msg.From.Address)
+	email.FromDisplayName = strings.TrimSpace(msg.From.Name)
 
-	email.SenderAddress = msg.Sender.Address
-	email.SenderDomain = extractDomain(msg.Sender.Address)
+	email.SenderAddress = strings.ToLower(msg.Sender.Address)
+	email.SenderDomain = utils.ExtractDomain(msg.Sender.Address)
 
 	for _, recipient := range msg.ToRecipients {
-		email.ToAddresses = append(email.ToAddresses, recipient.Address)
+		email.ToAddresses = append(email.ToAddresses, strings.ToLower(recipient.Address))
 	}
 	if len(msg.ReplyTo) > 0 {
-		email.ReplyToDomain = extractDomain(msg.ReplyTo[0].Address)
+		email.ReplyToDomain = utils.ExtractDomain(msg.ReplyTo[0].Address)
 	}
 
 	email.HasAttachments = msg.HasAttachments
 	email.Importance = domain.Importance(msg.Importance)
-	email.HasUnsubscribe = email.Headers.ListUnsubscribe != ""
-	// TODO: LinkDomains - requires HTML parsing of body
+	email.HasUnsubscribe = email.Headers.ListUnsubscribeURL != "" || email.Headers.ListUnsubscribeMailto != ""
 
 	if msg.Body.ContentType == "text" {
 		email.BodyText = msg.Body.Content
 		email.BodyHTML = ""
+		// clean text body by stripping quoted replies and whitespace
+		email.BodyClean = utils.NormalizeWhitespace(utils.StripQuotedReply((msg.Body.Content)))
+		rawLinks := utils.ExtractURLs(msg.Body.Content)
+		for _, link := range rawLinks {
+			email.LinkDomains = append(email.LinkDomains, utils.ExtractURLDomain(link))
+		}
+		email.RawLinks = append(email.RawLinks, rawLinks...)
 	}
+
 	if msg.Body.ContentType == "html" {
 		email.BodyText = ""
 		email.BodyHTML = msg.Body.Content
+		// extract links and clean text from HTML body
+		parsedHTML := utils.ParseHTML(msg.Body.Content)
+		email.BodyClean = parsedHTML.TextContent
+		for _, link := range parsedHTML.Links {
+			email.LinkDomains = append(email.LinkDomains, utils.ExtractURLDomain(link))
+		}
+		email.RawLinks = append(email.RawLinks, parsedHTML.Links...)
+		email.EmbeddedImages = append(email.EmbeddedImages, parsedHTML.Images...)
 	}
+
+	// raw preview right now
 	email.BodyPreview = msg.BodyPreview
 
 	email.Categories = msg.Categories
@@ -110,23 +129,28 @@ func NormalizeMessage(msg Message) domain.Email {
 	return email
 }
 
-// helper funcs
-func extractDomain(address string) string {
-	parts := strings.Split(address, "@")
-	if len(parts) != 2 {
-		return ""
-	}
-	registeredDomain, err := publicsuffix.EffectiveTLDPlusOne(parts[1])
-	if err != nil {
-		return ""
-	}
-	return registeredDomain
-}
-
 func parseTime(s string) time.Time {
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
 		return time.Time{}
 	}
 	return t
+}
+
+func parseListUnsubscribe(raw string) (mailto string, url string) {
+	dec := mime.WordDecoder{}
+	header, err := dec.DecodeHeader(raw)
+	if err != nil {
+		header = raw
+	}
+	parts := strings.Split(header, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "<mailto:") {
+			mailto = strings.Trim(part[len("<mailto:"):], "<>")
+		} else if strings.HasPrefix(part, "<http") {
+			url = strings.Trim(part, "<>")
+		}
+	}
+	return mailto, url
 }

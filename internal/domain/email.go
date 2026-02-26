@@ -56,20 +56,22 @@ const (
 
 type EmailHeaders struct {
 	// broadcast signals
-	ListUnsubscribe string // high value braodcast signal
-	ListID          string // broadcast signal, mailing list identifier
-	XMailer         string // mass mailer - weak broadcast signal
+	ListUnsubscribeURL    string // high value braodcast signal
+	ListUnsubscribeMailto string // high value broadcast signal
+	ListID                string // broadcast signal, mailing list identifier
+	XMailer               string // mass mailer - weak broadcast signal
+	XSIDPRA               string // good for spoofing checks
 
 	Precedence Precedence // broadcast indicator ex. bulk, list, junk
 	ReturnPath string     // for domain mismatch
 
-	// auth signalsx
+	// auth signals
 	SPFResult   SPFResult
 	DKIMResult  DKIMResult
 	DMARCResult DMARCResult
 
 	ReceivedChain []string // raw for now
-	ContentType   string   // for body parsing decisioxns
+	ContentType   string   // for body parsing decisions
 
 }
 
@@ -104,9 +106,13 @@ type Email struct {
 	HasUnsubscribe bool
 	LinkDomains    []string
 
+	RawLinks       []string
+	EmbeddedImages []string
+
 	BodyText    string
 	BodyHTML    string
 	BodyPreview string
+	BodyClean   string
 
 	Categories             []string
 	IsDraft                bool
